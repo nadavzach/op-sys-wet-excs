@@ -1,6 +1,7 @@
-//		commands.c
+//		commands.cpp
 //********************************************
 #include "commands.h"
+
 //********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
@@ -28,7 +29,7 @@ struct job {
               << " : " << job_to_print.pid_num <<job_to_print.time_of_exc<<" secs "
               << ((job_to_print.stopped == 1)?"stopped":"")<< endl;
 }*/
-int ExeCmd(list <int>& jobs, char* lineSize, char* cmdString, char* prv_dir, list <string>& history_commands)
+int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, list <string>& history_commands)
 {
     char* cmd;
     char* args[MAX_ARG];
@@ -48,14 +49,13 @@ int ExeCmd(list <int>& jobs, char* lineSize, char* cmdString, char* prv_dir, lis
             num_arg++;
 
     }
-    /*
     job new_job;
     new_job.org_number = org_num;
     new_job.pid_num = getppid();
     new_job.title_of_job = string(args[0]);
     new_job.time_of_exc = clock();
-    jobs.push_back(new_job);
-    org_num++;*/
+    //JJJ.push_back(new_job);
+    org_num++;
     /*************************************************/
     // Built in Commands PLEASE NOTE NOT ALL REQUIRED
     // ARE IN THIS CHAIN OF IF COMMANDS. PLEASE ADD
@@ -101,6 +101,7 @@ int ExeCmd(list <int>& jobs, char* lineSize, char* cmdString, char* prv_dir, lis
     {
 
     }
+
     /*************************************************/
 
     else if (!strcmp(cmd, "jobs"))
@@ -122,15 +123,55 @@ int ExeCmd(list <int>& jobs, char* lineSize, char* cmdString, char* prv_dir, lis
 
     }
     /*************************************************/
+    else if (!strcmp(cmd, "diff"))
+    {
+        bool diff = true;
+        fstream f1, f2;
+        char c1, c2;
+        f1.open(args[1], ios::in);
+        f2.open(args[2], ios::in);
+        if ((f1.get() == EOF) || (f2.get() == EOF))
+            perror("File can't be opened");
+        else {
+            while (1) {
+                c1 = f1.get();
+                c2 = f2.get();
+                if (c1 != c2) {
+                    diff = false;
+                    break;
+                }
+                if ((c1 == EOF) || (c2 == EOF))
+                    break;
+            }
+            f1.close();
+            f2.close();
+            if (diff == false) cout << "1" << endl;
+            else cout << "0" << endl;
+        }
+    }
+    /*************************************************/
     else if (!strcmp(cmd, "cp"))
     {
         //create new file
-        int fd_out = open(args[2], O_WRONLY | O_CREAT);
+        int fd_out = open(args[2], O_RDWR | O_CREAT, 0666);
         //open old file
-        int fd_in = open(args[1], O_RDONLY | O_CREAT);
-        //int fd_cl = close(fd_in);
-        //copy file
-        int suc = sendfile(fd_out, fd_in, 0, 5000);
+        int fd_in = open(args[1], O_RDONLY);
+        if (fd_in == -1 || fd_out == -1)
+            perror("cp error");
+        else {
+            //copy file
+            struct stat st;
+            int byte_size;
+            if (stat(args[1], &st) == 0) {
+                //Size of file, in bytes.
+                byte_size = st.st_size;
+            }
+            int suc = sendfile(fd_out, fd_in, 0, byte_size);
+            if (suc == -1)
+                perror("cp error");
+            else
+                cout << args[1] << " has been copied to " << args[2] << endl;
+        }
     }
     /*************************************************/
     else if (!strcmp(cmd, "bg"))
@@ -231,7 +272,7 @@ int ExeComp(char* lineSize)
 // Parameters: command string, pointer to jobs
 // Returns: 0- BG command -1- if not
 //**************************************************************************************
-int BgCmd(char* lineSize, list<int>& jobs)
+int BgCmd(char* lineSize, list<job*>& jobs)
 {
 
     char* Command;
