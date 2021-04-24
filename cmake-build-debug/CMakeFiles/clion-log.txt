@@ -1,0 +1,4 @@
+/home/compm/Documents/clion/clion-2021.1/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/compm/CLionProjects/op-sys-wet-excs
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/compm/CLionProjects/op-sys-wet-excs/cmake-build-debug
