@@ -15,7 +15,8 @@ main file. This file contains the main function of smash
 
 
 char* L_Fg_Cmd;
-list <int> jobs; //This represents the list of jobs. Please change to a preferred type (e.g array of char*)
+std::list <job*> jobs; //This represents the list of jobs. Please change to a preferred type (e.g array of char*)
+int job::org_num = 0;
 char lineSize[MAX_LINE_SIZE];
 //**************************************************************************************
 // function name: main

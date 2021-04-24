@@ -8,6 +8,71 @@
 // Parameters: pointer to jobs, command string
 // Returns: 0 - success,1 - failure
 //**************************************************************************************
+
+
+job::job(string title_of_job, int pid_num,clock_t time_of_exc)
+{
+    /*if(title_of_job.empty()||time_of_exc == -1)
+       return NULL;
+   else*/
+    //{
+
+    this->time_of_exc = time_of_exc;
+    this->org_num = job::org_num;
+    this->title_of_job = title_of_job;
+    this->pid_num = pid_num;
+    job::org_num++;
+
+    //}
+}
+bool job::operator==(const job& rhs)
+{
+    if(this->org_num == rhs.org_num)
+        return true;
+    else
+        return false;
+}
+
+
+void print_jobs( const std::list <job*>& jobs)
+{
+    std::list<job*>::const_iterator it;
+
+clock_t job_running_time,curr_time;
+for(it = jobs.begin(); it != jobs.end(); ++it)
+{
+curr_time = clock();
+job_running_time =  curr_time - *it.time_of_exc;
+std::cout<<"["<<*it.org_number<<"] "<<*it.title_of_job<<" "<<*it.pid_num<<" "<<job_running_time<<" secs";
+if(*it.stopped)
+{
+std::cout<<" stopped"<<endl;
+}
+else
+{
+std::cout<<endl;
+}
+
+}
+
+}
+
+
+
+job& job::operator=(job& old_job){
+    this->org_num=old_job.org_num;
+    this->title_of_job = old_job.title_of_job;
+    this->pid_num = old_job.pid_num;
+    this->time_of_exc = old_job.time_of_exc;
+    this->stopped = old_job.stopped;
+}
+
+
+
+
+
+int ExeCmd(list <job&>& jobs, char* lineSize, char* cmdString, char* prv_dir, list <string>& history_commands)
+=======
 static int org_num = 0;
 struct job {
     int org_number;
@@ -75,7 +140,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
                     strcpy(prv_dir, cur_dir);
             }
         }
-        // got an actual destination
+            // got an actual destination
         else {
             if (chdir(args[1]) == -1)
                 illegal_cmd = true;
@@ -84,7 +149,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
         }
     }
 
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "pwd"))
     {
         char* path = getcwd(pwd, MAX_LINE_SIZE);
@@ -96,32 +161,34 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
         }
     }
 
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "mkdir"))
     {
 
     }
+        /*************************************************/
+=======
 
     /*************************************************/
 
     else if (!strcmp(cmd, "jobs"))
     {
-        //list <job> :: iterator it;
-        //for(it = jobs.begin(); it != jobs.end() ; ++it) {
-        //    cout << *it << '\n';
-        //}
+        print_jobs(jobs);
     }
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "showpid"))
     {
         pid_t dad_pid = getppid();
         cout << "smash pid is " << dad_pid << '\n';
     }
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "fg"))
     {
 
     }
+
+        /*************************************************/
+=======
     /*************************************************/
     else if (!strcmp(cmd, "diff"))
     {
@@ -173,17 +240,17 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
                 cout << args[1] << " has been copied to " << args[2] << endl;
         }
     }
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "bg"))
     {
 
     }
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "quit"))
     {
         exit(1);
     }
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "history"))
     {
         list <string> ::iterator it;
@@ -191,7 +258,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
             cout << '\t' << *it << '\n';
         }
     }
-    /*************************************************/
+        /*************************************************/
 
     else // external command
     {
@@ -200,7 +267,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     }
     if (illegal_cmd == true)
     {
-        printf("smash error: > \"%s\"– No such file or directory\n", cmdString);
+        printf("smash error: > \"%s\"ï¿½ No such file or directory\n", cmdString);
         return 1;
     }
     /*************************************************/
@@ -222,28 +289,28 @@ void ExeExternal(char* args[MAX_ARG], char* cmdString)
     int pID;
     switch (pID = fork())
     {
-    case -1:
-        // Add your code here (error)
+        case -1:
+            // Add your code here (error)
 
-        /*
-        your code
-        */
-    case 0:
-        // Child Process
-        setpgrp();
+            /*
+            your code
+            */
+        case 0:
+            // Child Process
+            setpgrp();
 
-        // Add your code here (execute an external command)
+            // Add your code here (execute an external command)
 
-        /*
-        your code
-        */
+            /*
+            your code
+            */
 
-        //default:
-        // Add your code here
+            //default:
+            // Add your code here
 
-        /*
-        your code
-        */
+            /*
+            your code
+            */
     }
 }
 //**************************************************************************************
@@ -272,6 +339,8 @@ int ExeComp(char* lineSize)
 // Parameters: command string, pointer to jobs
 // Returns: 0- BG command -1- if not
 //**************************************************************************************
+int BgCmd(char* lineSize, list<job&>& jobs)
+=======
 int BgCmd(char* lineSize, list<job*>& jobs)
 {
 
