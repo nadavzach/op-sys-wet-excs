@@ -263,11 +263,7 @@ void ExeExternal(char* args[MAX_ARG], char* cmdString,std::list <job*>& jobs)
     switch (pID = fork())
     {
         case -1:
-            // Add your code here (error)
-
-            /*
-            your code
-            */
+            perror("fork fail at ExeExternal");
         case 0:
             // Child Process
             setpgrp();
