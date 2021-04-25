@@ -1,5 +1,6 @@
 //		commands.cpp
 //********************************************
+#include <fstream>
 #include "commands.h"
 
 //********************************************
@@ -18,33 +19,30 @@ job::job(string title_of_job, int pid_num,clock_t time_of_exc)
     //{
 
     this->time_of_exc = time_of_exc;
-    this->org_num = job::org_num;
     this->title_of_job = title_of_job;
     this->pid_num = pid_num;
+    this->proc_num = job::org_num;
     job::org_num++;
 
     //}
 }
-bool job::operator==(const job& rhs)
+bool job::operator==(const job& rhs) const
 {
-    if(this->org_num == rhs.org_num)
-        return true;
-    else
-        return false;
+    return (this->pid_num == rhs.pid_num);
 }
 
 
 void print_jobs( const std::list <job*>& jobs)
 {
-    std::list<job*>::const_iterator it;
+    //std::list<job*>::const_iterator it;
 
 clock_t job_running_time,curr_time;
-for(it = jobs.begin(); it != jobs.end(); ++it)
+for(auto job : jobs)
 {
 curr_time = clock();
-job_running_time =  curr_time - *it.time_of_exc;
-std::cout<<"["<<*it.org_number<<"] "<<*it.title_of_job<<" "<<*it.pid_num<<" "<<job_running_time<<" secs";
-if(*it.stopped)
+job_running_time =  curr_time - job->time_of_exc;
+std::cout<<"["<<job->proc_num<<"] "<<job->title_of_job<<" "<<job->pid_num<<" "<<job_running_time<<" secs";
+if(job->stopped)
 {
 std::cout<<" stopped"<<endl;
 }
@@ -72,28 +70,12 @@ job& job::operator=(job& old_job){
 
 
 int ExeCmd(list <job&>& jobs, char* lineSize, char* cmdString, char* prv_dir, list <string>& history_commands)
-=======
+{
+    //TODO
+}
 static int org_num = 0;
-struct job {
-    int org_number;
-    string title_of_job;
-    int pid_num;
-    clock_t time_of_exc;
-    int stopped = 0;
-    /*inline job operator=(job old_job){
-        org_number=old_job.org_number;
-        title_of_job = old_job.title_of_job;
-        pid_num = old_job.pid_num;
-        time_of_exc = old_job.time_of_exc;
-        stopped = old_job.stopped;
-    }*/
-};
 
-/*ostream& operator<<(ostream& os, job & job_to_print) {
-    return os << "["<<job_to_print.org_number<<"] "<<job_to_print.title_of_job
-              << " : " << job_to_print.pid_num <<job_to_print.time_of_exc<<" secs "
-              << ((job_to_print.stopped == 1)?"stopped":"")<< endl;
-}*/
+
 int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, list <string>& history_commands)
 {
     char* cmd;
@@ -104,23 +86,17 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     int i = 0, num_arg = 0;
     bool illegal_cmd = false; // illegal command
     cmd = strtok(lineSize, delimiters);
-    if (cmd == NULL)
+    if (cmd == nullptr)
         return 0;
     args[0] = cmd;
     for (i = 1; i < MAX_ARG; i++)
     {
-        args[i] = strtok(NULL, delimiters);
-        if (args[i] != NULL)
+        args[i] = strtok(nullptr, delimiters);
+        if (args[i] != nullptr)
             num_arg++;
 
     }
-    job new_job;
-    new_job.org_number = org_num;
-    new_job.pid_num = getppid();
-    new_job.title_of_job = string(args[0]);
-    new_job.time_of_exc = clock();
-    //JJJ.push_back(new_job);
-    org_num++;
+
     /*************************************************/
     // Built in Commands PLEASE NOTE NOT ALL REQUIRED
     // ARE IN THIS CHAIN OF IF COMMANDS. PLEASE ADD
@@ -136,7 +112,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
             else {
                 if (chdir(prv_dir) == -1)
                     illegal_cmd = true;
-                if (illegal_cmd == false)
+                if (!illegal_cmd)
                     strcpy(prv_dir, cur_dir);
             }
         }
@@ -144,7 +120,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
         else {
             if (chdir(args[1]) == -1)
                 illegal_cmd = true;
-            if (illegal_cmd == false)
+            if (!illegal_cmd)
                 strcpy(prv_dir, cur_dir);
         }
     }
@@ -162,12 +138,8 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     }
 
         /*************************************************/
-    else if (!strcmp(cmd, "mkdir"))
-    {
 
-    }
         /*************************************************/
-=======
 
     /*************************************************/
 
@@ -188,7 +160,6 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     }
 
         /*************************************************/
-=======
     /*************************************************/
     else if (!strcmp(cmd, "diff"))
     {
@@ -200,7 +171,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
         if ((f1.get() == EOF) || (f2.get() == EOF))
             perror("File can't be opened");
         else {
-            while (1) {
+            while (true) {
                 c1 = f1.get();
                 c2 = f2.get();
                 if (c1 != c2) {
@@ -212,7 +183,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
             }
             f1.close();
             f2.close();
-            if (diff == false) cout << "1" << endl;
+            if (!diff) cout << "1" << endl;
             else cout << "0" << endl;
         }
     }
@@ -262,10 +233,10 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
 
     else // external command
     {
-        ExeExternal(args, cmdString);
+        ExeExternal(args, cmdString,jobs);
         return 0;
     }
-    if (illegal_cmd == true)
+    if (illegal_cmd)
     {
         printf("smash error: > \"%s\"� No such file or directory\n", cmdString);
         return 1;
@@ -284,9 +255,11 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
 // Parameters: external command arguments, external command string
 // Returns: void
 //**************************************************************************************
-void ExeExternal(char* args[MAX_ARG], char* cmdString)
+void ExeExternal(char* args[MAX_ARG], char* cmdString,std::list <job*>& jobs)
 {
-    int pID;
+    int pID,execv_ret_val;
+    char pwd[MAX_LINE_SIZE];
+    char* path;
     switch (pID = fork())
     {
         case -1:
@@ -299,18 +272,18 @@ void ExeExternal(char* args[MAX_ARG], char* cmdString)
             // Child Process
             setpgrp();
 
-            // Add your code here (execute an external command)
 
-            /*
-            your code
-            */
+            path = getcwd(pwd, MAX_LINE_SIZE);
 
-            //default:
-            // Add your code here
+            execv_ret_val = execv(path,args);
+            if(execv_ret_val==-1)// execv failed
+                perror("command execution failed");
 
-            /*
-            your code
-            */
+        default://parent process
+            job* new_job = new job(args[0],pID,clock());
+            jobs.push_back(new_job);
+
+
     }
 }
 //**************************************************************************************
@@ -339,8 +312,7 @@ int ExeComp(char* lineSize)
 // Parameters: command string, pointer to jobs
 // Returns: 0- BG command -1- if not
 //**************************************************************************************
-int BgCmd(char* lineSize, list<job&>& jobs)
-=======
+
 int BgCmd(char* lineSize, list<job*>& jobs)
 {
 
@@ -358,4 +330,21 @@ int BgCmd(char* lineSize, list<job*>& jobs)
 
     }
     return -1;
+}
+
+void update_jobs(list<job*>& jobs)
+{
+    int status;
+
+    for(_List_const_iterator<job *>  job = jobs.cbegin();job!=jobs.cend();++job )
+    {
+        int wait_ret_Val = waitpid((*job)->pid_num, &status,WNOHANG);
+        if(wait_ret_Val==-1)
+        {
+            perror("update_jobs failed from waitpid");
+        } else if(!wait_ret_Val)
+            {
+                jobs.erase(job);
+            }
+    }
 }

@@ -31,17 +31,16 @@ public:
 //static vars
     static int org_num;
     //struct fields
-    int ;
+    int proc_num;
     string title_of_job;
     int pid_num;
     clock_t time_of_exc;
     int stopped = 0;
 
     //const&dest
-    job();
     //cpy const
     job(const job &old_job){
-        org_num=old_job.org_num;
+        proc_num=old_job.proc_num;
         title_of_job = old_job.title_of_job;
         pid_num = old_job.pid_num;
         time_of_exc = old_job.time_of_exc;
@@ -50,7 +49,7 @@ public:
 
     //operators asasasas
     job& operator=(job& old_job);
-    bool operator==(const job& rhs);
+    bool operator==(const job& rhs) const;
 
     //methods
 

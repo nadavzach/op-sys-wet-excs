@@ -1,1 +1,1 @@
-/usr/bin/c++ -g CMakeFiles/op_sys_wet_excs.dir/commands.cpp.o CMakeFiles/op_sys_wet_excs.dir/signals.cpp.o CMakeFiles/op_sys_wet_excs.dir/smash.cpp.o -o op_sys_wet_excs 
+/usr/bin/c++.exe -g  -Wl,--enable-auto-import CMakeFiles/op_sys_wet_excs.dir/commands.cpp.o CMakeFiles/op_sys_wet_excs.dir/signals.cpp.o CMakeFiles/op_sys_wet_excs.dir/smash.cpp.o  -o op_sys_wet_excs.exe -Wl,--out-implib,libop_sys_wet_excs.dll.a -Wl,--major-image-version,0,--minor-image-version,0 
