@@ -36,29 +36,29 @@ void print_jobs( const std::list <job*>& jobs)
 {
     //std::list<job*>::const_iterator it;
 
-clock_t job_running_time,curr_time;
-for(auto job : jobs)
-{
-curr_time = clock();
-job_running_time =  curr_time - job->time_of_exc;
-std::cout<<"["<<job->proc_num<<"] "<<job->title_of_job<<" "<<job->pid_num<<" "<<job_running_time<<" secs";
-if(job->stopped)
-{
-std::cout<<" stopped"<<endl;
-}
-else
-{
-std::cout<<endl;
-}
+    clock_t job_running_time,curr_time;
+    for(auto job : jobs)
+    {
+        curr_time = clock();
+        job_running_time =  curr_time - job->time_of_exc;
+        std::cout<<"["<<job->proc_num<<"] "<<job->title_of_job<<" "<<job->pid_num<<" "<<job_running_time<<" secs";
+        if(job->stopped)
+        {
+            std::cout<<" stopped"<<endl;
+        }
+        else
+        {
+            std::cout<<endl;
+        }
 
-}
+    }
 
 }
 
 
 
 job& job::operator=(job& old_job){
-    this->org_num=old_job.org_num;
+    this->proc_num=old_job.proc_num;
     this->title_of_job = old_job.title_of_job;
     this->pid_num = old_job.pid_num;
     this->time_of_exc = old_job.time_of_exc;
@@ -84,6 +84,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     char pwd[MAX_LINE_SIZE];
     char* delimiters = " \t\n";
     int i = 0, num_arg = 0;
+    bool found;
     bool illegal_cmd = false; // illegal command
     cmd = strtok(lineSize, delimiters);
     if (cmd == nullptr)
@@ -96,6 +97,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
             num_arg++;
 
     }
+    args[i+1]= nullptr;
 
     /*************************************************/
     // Built in Commands PLEASE NOTE NOT ALL REQUIRED
@@ -141,7 +143,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
 
         /*************************************************/
 
-    /*************************************************/
+        /*************************************************/
 
     else if (!strcmp(cmd, "jobs"))
     {
@@ -160,7 +162,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     }
 
         /*************************************************/
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "diff"))
     {
         bool diff = true;
@@ -187,7 +189,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
             else cout << "0" << endl;
         }
     }
-    /*************************************************/
+        /*************************************************/
     else if (!strcmp(cmd, "cp"))
     {
         //create new file
@@ -215,6 +217,25 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     else if (!strcmp(cmd, "bg"))
     {
 
+    }
+        /*************************************************/
+    else if (!strcmp(cmd, "kill"))
+    {
+        found = false;
+        for(auto job : jobs)
+        {
+            long int proccess_num = strtol(args[2], nullptr,10);
+            long int signal = strtol((args[1]+1), nullptr,10);
+            if(!proccess_num || !signal)
+                perror("arguments coudlnt be cast to int");
+            else if((*job).proc_num == proccess_num)
+            {
+                found = true;
+                kill( (*job).pid_num, (int)signal);
+            }
+        }
+        if(!found)
+            printf("smash error: > \"%s\"� No such file or directory\n", cmdString);
     }
         /*************************************************/
     else if (!strcmp(cmd, "quit"))
@@ -271,7 +292,7 @@ void ExeExternal(char* args[MAX_ARG], char* cmdString,std::list <job*>& jobs)
 
             path = getcwd(pwd, MAX_LINE_SIZE);
 
-            execv_ret_val = execv(path,args);
+            execv_ret_val = execl(args[0],args[1]);
             if(execv_ret_val==-1)// execv failed
                 perror("command execution failed");
 
@@ -328,19 +349,22 @@ int BgCmd(char* lineSize, list<job*>& jobs)
     return -1;
 }
 
-void update_jobs(list<job*>& jobs)
-{
+void update_jobs(list<job*>& jobs) {
     int status;
 
-    for(_List_const_iterator<job *>  job = jobs.cbegin();job!=jobs.cend();++job )
-    {
-        int wait_ret_Val = waitpid((*job)->pid_num, &status,WNOHANG);
-        if(wait_ret_Val==-1)
-        {
-            perror("update_jobs failed from waitpid");
-        } else if(!wait_ret_Val)
-            {
-                jobs.erase(job);
+    if (jobs.cbegin() != jobs.cend()) {
+        for (auto job = jobs.cbegin(); job != jobs.end();) {
+            if ( (*job)->pid_num > 0) {
+                int wait_ret_Val = waitpid((*job)->pid_num, &status, WNOHANG);
+                if (wait_ret_Val == -1) {
+                    perror("update_jobs failed from waitpid");
+                } else if (!wait_ret_Val) {
+                    job = jobs.erase(job);
+                }
+                else job++;
+
             }
+
+        }
     }
 }

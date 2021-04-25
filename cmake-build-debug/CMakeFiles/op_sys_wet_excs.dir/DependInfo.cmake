@@ -4,9 +4,9 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/commands.cpp" "/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/cmake-build-debug/CMakeFiles/op_sys_wet_excs.dir/commands.cpp.o"
-  "/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.cpp" "/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/cmake-build-debug/CMakeFiles/op_sys_wet_excs.dir/signals.cpp.o"
-  "/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/smash.cpp" "/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/cmake-build-debug/CMakeFiles/op_sys_wet_excs.dir/smash.cpp.o"
+  "/home/compm/CLionProjects/op-sys-wet-excs/commands.cpp" "/home/compm/CLionProjects/op-sys-wet-excs/cmake-build-debug/CMakeFiles/op_sys_wet_excs.dir/commands.cpp.o"
+  "/home/compm/CLionProjects/op-sys-wet-excs/signals.cpp" "/home/compm/CLionProjects/op-sys-wet-excs/cmake-build-debug/CMakeFiles/op_sys_wet_excs.dir/signals.cpp.o"
+  "/home/compm/CLionProjects/op-sys-wet-excs/smash.cpp" "/home/compm/CLionProjects/op-sys-wet-excs/cmake-build-debug/CMakeFiles/op_sys_wet_excs.dir/smash.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

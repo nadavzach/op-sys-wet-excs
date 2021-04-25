@@ -6,11 +6,13 @@
 
 #IncludeRegexTransform: 
 
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/commands.cpp
+/home/compm/CLionProjects/op-sys-wet-excs/commands.cpp
+fstream
+-
 commands.h
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/commands.h
+/home/compm/CLionProjects/op-sys-wet-excs/commands.h
 
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/commands.h
+/home/compm/CLionProjects/op-sys-wet-excs/commands.h
 unistd.h
 -
 stdio.h
@@ -45,44 +47,4 @@ list
 -
 iterator
 -
-
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.cpp
-signals.h
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.h
-
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.h
-sys/types.h
--
-sys/wait.h
--
-unistd.h
--
-stdio.h
--
-stdlib.h
--
-string.h
--
-signal.h
--
-
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/smash.cpp
-sys/types.h
--
-sys/wait.h
--
-unistd.h
--
-stdio.h
--
-stdlib.h
--
-string.h
--
-signal.h
--
-commands.h
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/commands.h
-signals.h
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.h
 

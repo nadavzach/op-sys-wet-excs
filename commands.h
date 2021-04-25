@@ -62,7 +62,7 @@ void print_jobs( const std::list <job*>& jobs);
 
 int ExeComp(char* lineSize);
 int BgCmd(char* lineSize, list<job*>& jobs);
-int ExeCmd(list<job&>& jobs, char* lineSize, char* cmdString, char* prv_dir, list<string>& history_commands);
+int ExeCmd(list<job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, list<string>& history_commands);
 void ExeExternal(char* args[MAX_ARG], char* cmdString,std::list <job*>& jobs);
 void update_jobs(list<job*>& jobs);
 
