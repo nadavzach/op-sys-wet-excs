@@ -494,7 +494,7 @@ void update_jobs(list<job*>& jobs) {
                         cout<<(*job_it)->title_of_job<<"exited, status="<<WEXITSTATUS(status)<<endl;
                     } else if (WIFSIGNALED(status))
                     {
-                        delete(*job_it);//TODO fix this MF
+                        delete(*job_it);
                         jobs.erase(job_it);
                         cout<<(*job_it)->title_of_job<<"killed by signal "<<WTERMSIG(status)<<endl;
 
