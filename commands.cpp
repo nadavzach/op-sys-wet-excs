@@ -188,7 +188,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
                     {
                         if ((*cur_job)->proc_num == proccess_num) {
                             found = true;
-                            waitpid((*cur_job)->pid_num, &status, 0);
+                            run_in_fg(*cur_job,jobs);
                         }
                     }
                 }
@@ -226,7 +226,8 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
         if ((f1.get() == EOF) || (f2.get() == EOF))
             perror("File can't be opened");
         else {
-            while (true) {
+            while (true)
+            {
                 c1 = f1.get();
                 c2 = f2.get();
                 if (c1 != c2) {
@@ -341,7 +342,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
                         {
                             delete((*job_it));
                             jobs.erase(job_it);
-                            cout<<(*job_it)->pid_num<<"killed by signal "<<SIGTERM<<endl;//TODO is this line needed?
+                            cout<<(*job_it)->title_of_job<<"killed by signal "<<SIGTERM<<endl;//TODO is this line needed?
                             sigterm_succeed = true;
                         }
                     }
@@ -350,7 +351,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
                     kill((*job_it)->pid_num, SIGKILL);
                     delete((*job_it));
                     jobs.erase(job_it);
-                    cout<<(*job_it)->pid_num<<"killed by signal "<<SIGKILL<<endl;//TODO is this line needed?
+                    cout<<(*job_it)->title_of_job<<"killed by signal "<<SIGKILL<<endl;//TODO is this line needed?
                 }
             }
 
@@ -392,10 +393,23 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
 //**************************************************************************************
 void ExeExternal(char* args[MAX_ARG], char* cmdString,std::list <job*>& jobs)
 {
-    int pID,execv_ret_val;
-    char pwd[MAX_LINE_SIZE];
-    char* path;
-    switch (pID = fork())
+    int pID,execv_ret_val,i,last_arg;
+    bool run_in_bg;
+    for(i=1;i<MAX_ARG;i++)//looking for the last argument
+    {
+        if (*args[i] == '\0')
+        {
+            last_arg = i - 1;
+            break;
+        }
+    }
+    if(*args[last_arg] == '&')//run in bg
+    {
+        run_in_bg = true;
+        *args[last_arg] = '&';
+    }
+
+        switch (pID = fork())
     {
         case -1:
             perror("fork fail at ExeExternal");
@@ -403,16 +417,17 @@ void ExeExternal(char* args[MAX_ARG], char* cmdString,std::list <job*>& jobs)
             // Child Process
             setpgrp();
 
-
-            path = getcwd(pwd, MAX_LINE_SIZE);
-
             execv_ret_val = execl(args[0],args[1]);
             if(execv_ret_val==-1)// execv failed
                 perror("command execution failed");
 
         default://parent process
             job* new_job = new job(args[0],pID,clock());
-            jobs.push_back(new_job);
+            if(run_in_bg)
+            {
+                jobs.push_back(new_job);
+            }else//run in fg
+                run_in_fg(new_job,jobs);
 
 
     }
@@ -476,20 +491,20 @@ void update_jobs(list<job*>& jobs) {
                 {
 
                     if (WIFEXITED(status)) {
-                        cout<<(*job_it)->pid_num<<"exited, status="<<WEXITSTATUS(status)<<endl;
+                        cout<<(*job_it)->title_of_job<<"exited, status="<<WEXITSTATUS(status)<<endl;
                     } else if (WIFSIGNALED(status))
                     {
                         delete(*job_it);//TODO fix this MF
                         jobs.erase(job_it);
-                        cout<<(*job_it)->pid_num<<"killed by signal "<<WTERMSIG(status)<<endl;
+                        cout<<(*job_it)->title_of_job<<"killed by signal "<<WTERMSIG(status)<<endl;
 
                     } else if (WIFSTOPPED(status))
                     {
                         (*job_it)->stopped = 1;
-                        cout<<(*job_it)->pid_num<<"stopped by signal "<<WSTOPSIG(status)<<endl;
+                        cout<<(*job_it)->title_of_job<<"stopped by signal "<<WSTOPSIG(status)<<endl;
                     } else if (WIFCONTINUED(status))
                     {
-                        cout<<(*job_it)->pid_num<<"continued"<<endl;
+                        cout<<(*job_it)->title_of_job<<"continued"<<endl;
                     }
                 }
 
@@ -497,6 +512,29 @@ void update_jobs(list<job*>& jobs) {
 
         }
     }
+}
+void run_in_fg(job *job,list<job*> &jobs)
+{
+    int status;
+    waitpid((*job).pid_num, &status, 0);//TODO which option? insted of zero..
+
+    if (WIFEXITED(status)) {
+        cout<<(*job).title_of_job<<"exited, status="<<WEXITSTATUS(status)<<endl;
+    } else if (WIFSIGNALED(status))
+    {
+        delete(job);
+        cout<<(*job).title_of_job<<"killed by signal "<<WTERMSIG(status)<<endl;
+
+    } else if (WIFSTOPPED(status))
+    {
+        (*job).stopped = 1;
+        cout<<(*job).title_of_job<<"stopped by signal "<<WSTOPSIG(status)<<endl;
+        jobs.push_back(*job)
+    } else if (WIFCONTINUED(status))
+    {
+        cout<<(*job).title_of_job<<"continued"<<endl;
+    }
+
 }
 
 
