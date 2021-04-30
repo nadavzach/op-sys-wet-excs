@@ -7,6 +7,8 @@
 #IncludeRegexTransform: 
 
 /cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/commands.cpp
+fstream
+-
 commands.h
 /cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/commands.h
 
@@ -45,10 +47,6 @@ list
 -
 iterator
 -
-
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.cpp
-signals.h
-/cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.h
 
 /cygdrive/c/Users/Nadav/CLionProjects/op-sys-wet-excs/signals.h
 sys/types.h
