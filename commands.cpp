@@ -365,7 +365,7 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
             cout << '\t' << *it << '\n';
         }
     }
-        /*************************************************/
+        /**************************************************/
 
     else // external command
     {
