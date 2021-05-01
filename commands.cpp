@@ -537,8 +537,9 @@ void run_in_fg(job* cur_job, list<job*>& jobs)
     }
     else if (WIFSIGNALED(status))
     {
-        delete(cur_job);
+
         cout << (*cur_job).title_of_job << "killed by signal " << WTERMSIG(status) << endl;
+        delete(cur_job);
 
     }
     else if (WIFSTOPPED(status))
