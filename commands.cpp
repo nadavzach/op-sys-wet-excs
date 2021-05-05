@@ -1,8 +1,9 @@
+
 //		commands.cpp
 //********************************************
 #include <fstream>
 #include "commands.h"
-
+#include <sys/sendfile.h>
 //********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
@@ -11,15 +12,15 @@
 //**************************************************************************************
 #define SIGTEM_TIMEOUT 5
 //TODO list:
-//TODO add cout for each signal sent (after before every kill(..)
 //TODO check for invalid args in each command/more args than needed?. exmp1 - exit killer,exmp2 - exit kill ohNo
+//TODO write and check an external prog that gets more than 1 arg
+//TODO check clang tidy errors
+//%%%%%%%%%%%%%%%%%%%%%%%    DONE    %%%%%%%%%%%%%%%%%%%%%%%%%%%
+//TODO add cout for each signal sent (after before every kill(..)
 //TODO make sure when we print clock time we cast to double
-//TODO every place we access jobs, check that its not empty with the following code:
-//if (*(jobs.begin()) == nullptr)
-//            cout << "no processes running!" << endl;
-//        else {
-//TODO check that all errors are in the right format with smash error> ect..
-//TODO check that all output to cout is in the right format
+//TODO check number of recived args is legal
+//TODO if a stopped process is getting fg, unstop it
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 job::job(string title_of_job, int pid_num, clock_t time_of_exc)
 {
     /*if(title_of_job.empty()||time_of_exc == -1)
@@ -30,8 +31,8 @@ job::job(string title_of_job, int pid_num, clock_t time_of_exc)
     this->time_of_exc = time_of_exc;
     this->title_of_job = title_of_job;
     this->pid_num = pid_num;
-    this->proc_num = job::org_num;
-    job::org_num++;
+    this->proc_num = ++job::org_num;
+    //job::org_num++;
 
     //}
 }
@@ -39,25 +40,32 @@ bool job::operator==(const job& rhs) const
 {
     return (this->pid_num == rhs.pid_num);
 }
-
+void send_signal(int signum,int pid,std::string const &signame)
+{
+    if(!kill(pid,signum))
+        cout<<"smash > signal"<< signame <<"was sent to pid "<<pid<<endl;//format ok
+    else
+        perror("smash error: > kill job – cannot send signal");
+}
 
 void print_jobs(const std::list <job*>& jobs)
 {
     //std::list<job*>::const_iterator it;
 
-    clock_t job_running_time, curr_time;
+    clock_t curr_time;
+    double job_running_time;
     for (auto job : jobs)
     {
         curr_time = clock();
-        job_running_time = curr_time - job->time_of_exc;
-        std::cout << "[" << job->proc_num << "] " << job->title_of_job << " " << job->pid_num << " " << job_running_time << " secs";
+        job_running_time = (double)(curr_time - job->time_of_exc) / CLOCKS_PER_SEC;
+        std::cout << "[" << job->proc_num << "] " << job->title_of_job << " " << job->pid_num << " " << job_running_time << " secs";//format ok
         if (job->stopped)
         {
-            std::cout << " stopped" << endl;
+            std::cout << " (stopped)" << endl;//format ok
         }
         else
         {
-            std::cout << endl;
+            std::cout << endl;//format ok
         }
 
     }
@@ -78,11 +86,6 @@ job& job::operator=(job& old_job) {
 
 
 
-int ExeCmd(list <job&>& jobs, char* lineSize, char* cmdString, char* prv_dir, list <string>& history_commands)
-{
-    //TODO
-}
-static int org_num = 0;
 
 
 int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, list <string>& history_commands)
@@ -95,6 +98,11 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     int i = 0, num_arg = 0;
     bool found;
     bool illegal_cmd = false; // illegal command
+    bool run_in_bg = false;
+    if (cmdString[strlen(cmdString) - 1] == '&') { // run in background
+        cmdString[strlen(cmdString) - 1] = '\0';
+        run_in_bg = true;
+    }
     cmd = strtok(lineSize, delimiters);
     if (cmd == nullptr)
         return 0;
@@ -116,275 +124,326 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
     if (!strcmp(cmd, "cd"))
     {
         char* cur_dir = getcwd(pwd, MAX_LINE_SIZE);
-        if (!(strcmp(args[1], "-"))) { //going back a folder
-            if (!(strcmp(prv_dir, ""))) {
-                printf("cd: OLDPWD not set\n");
-            }
-            else {
-                if (chdir(prv_dir) == -1)
-                    illegal_cmd = true;
-                if (!illegal_cmd)
-                    strcpy(prv_dir, cur_dir);
-            }
-        }
-            // got an actual destination
+        if(args[2] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;
         else {
-            if (chdir(args[1]) == -1)
-                illegal_cmd = true;
-            if (!illegal_cmd)
-                strcpy(prv_dir, cur_dir);
+            if (!(strcmp(args[1], "-"))) { //going back a folder
+                if (!(strcmp(prv_dir, ""))) {//TODO is this compare ok?
+                    cout << "smash error: > no previous directory" << endl;//format ok
+                } else {
+                    if (chdir(prv_dir) == -1)
+                        perror("smash error: > No such file or directory");//format ok
+                    else {
+                        cout << prv_dir << endl;//format ok
+                        strcpy(prv_dir, cur_dir);
+                    }
+                }
+            }
+                // got an actual destination
+            else {
+                if (chdir(args[1]) == -1)
+                    cout << "smash error: > No such file or directory" << endl;//format ok
+                else {
+                    cout << prv_dir << endl;//format ok
+                    strcpy(prv_dir, cur_dir);
+                }
+            }
         }
     }
 
         /*************************************************/
     else if (!strcmp(cmd, "pwd"))
     {
-        char* path = getcwd(pwd, MAX_LINE_SIZE);
-        if (path != NULL) {
-            printf("%s\n", path);
-        }
-        else {
-            perror("getcwd() error");
-        }
+        if (args[1] != nullptr) {
+            char *path = getcwd(pwd, MAX_LINE_SIZE);
+            if (path != nullptr) {
+                cout << path << endl;//format ok
+            } else {
+                perror("smash error: > getcwd() error");//format ok
+            }
+        }//format ok
+        else cout << "smash error: > too many arguments" << endl;//format ok
     }
 
         /*************************************************/
 
-        /*************************************************/
 
-        /*************************************************/
 
     else if (!strcmp(cmd, "jobs"))
     {
-        print_jobs(jobs);
+        if(args[1] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;//format ok
+        else {
+            print_jobs(jobs);
+        }
     }
         /*************************************************/
     else if (!strcmp(cmd, "showpid"))
     {
-        pid_t dad_pid = getppid();
-        cout << "smash pid is " << dad_pid << '\n';
+        if(args[1] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;//format ok
+        else {
+            pid_t dad_pid = getppid();
+            cout << "smash pid is " << dad_pid << endl;//format ok
+        }
     }
         /*************************************************/
-    else if (!strcmp(cmd, "fg"))
-    {
-        int status;
-        job* Pjob;
-        //without noticing if anumber has bin given or not
-        //key operations:
-        //print process's name\
-        //call wait with right arguments
-        auto cur_job = jobs.end();
-        if (args[1] == nullptr)
-        {
-            cout << (*cur_job)->title_of_job << endl;
-            Pjob = *cur_job;
-            jobs.erase(cur_job);
-            run_in_fg(*cur_job, jobs);
-
+    else if (!strcmp(cmd, "fg")) {
+        if (args[2] != nullptr) {
+            cout << "smash error: > too many arguments" << endl;//format ok
         }
-        else
-        {
-            found = false;
-            long int proccess_num = strtol(args[1], nullptr, 10);
-            if (!proccess_num)
-                perror("arguments coudlnt be cast to int");
-            else {
-                for (cur_job = jobs.begin(); cur_job != jobs.end(); cur_job++) {
-                    {
-                        if ((*cur_job)->proc_num == proccess_num) {
-                            found = true;
-                            Pjob = *cur_job;
-                            jobs.erase(cur_job);
-                            run_in_fg(*cur_job, jobs);
-                            break;
+        else {
+            int status;
+            job *Pjob;
+            //without noticing if anumber has bin given or not
+            //key operations:
+            //print process's name\
+        //call wait with right arguments
+            if ((*jobs.begin()) != nullptr) {
+                auto max_proc_num_job = jobs.begin();
+                auto cur_job = jobs.begin();
+
+                if (args[1] == nullptr) {//move last activated process (max process num)
+                    for (cur_job = jobs.begin(); cur_job != jobs.end(); cur_job++) {
+                        if ((*cur_job)->proc_num > (*max_proc_num_job)->proc_num) {
+                            max_proc_num_job = cur_job;
                         }
                     }
+                    cout << (*max_proc_num_job)->title_of_job << endl;
+                    Pjob = *cur_job;
+                    cur_job = jobs.erase(cur_job);
+                    run_in_fg(*cur_job, jobs);
+
+                } else {
+                    found = false;
+                    long int process_num = strtol(args[1], nullptr, 10);
+                    if (!process_num)
+                        perror("smash error: > arguments couldn't be cast to int");//format ok
+                    else {
+                        for (cur_job = jobs.begin(); cur_job != jobs.end(); cur_job++) {
+                            {
+                                if ((*cur_job)->proc_num == process_num) {
+                                    found = true;
+                                    Pjob = *cur_job;
+                                    cur_job = jobs.erase(cur_job);
+                                    run_in_fg(*cur_job, jobs);
+                                    break;
+                                }
+                            }
+                        }
+                        if (!found)
+                            cout << "smash error: > process not found" << endl;//format ok
+                    }
                 }
+            }else{
+                cout << "smash error: > no processes to run in fg" << endl;//format ok
             }
         }
-        if (!found)
-            printf("smash error: > \"%s\"� No such process\n", cmdString);//TODO is this err msg ok?
-
     }
+
 
         /*************************************************/
         /*************************************************/
     else if (!strcmp(cmd, "diff"))
     {
-        bool diff = true;
-        fstream f1, f2;
-        char c1, c2;
-        f1.open(args[1], ios::in);
-        f2.open(args[2], ios::in);
-        if ((f1.get() == EOF) || (f2.get() == EOF))
-            perror("File can't be opened");
+        if(args[3] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;//format ok
         else {
-            while (true)
-            {
-                c1 = f1.get();
-                c2 = f2.get();
-                if (c1 != c2) {
-                    diff = false;
-                    break;
+            bool diff = true;
+            fstream f1, f2;
+            char c1, c2;
+            f1.open(args[1], ios::in);
+            f2.open(args[2], ios::in);
+            if ((f1.get() == EOF) || (f2.get() == EOF))
+                perror("smash error: > problem with files");//format ok
+            else {
+                while (true) {
+                    c1 = (char)f1.get();
+                    c2 = (char)f2.get();
+                    if (c1 != c2) {
+                        diff = false;
+                        break;
+                    }
+                    if ((c1 == EOF) || (c2 == EOF))
+                        break;
                 }
-                if ((c1 == EOF) || (c2 == EOF))
-                    break;
+                f1.close();
+                f2.close();
+                if (!diff) cout << "1" << endl;//format ok
+                else cout << "0" << endl;//format ok
             }
-            f1.close();
-            f2.close();
-            if (!diff) cout << "1" << endl;
-            else cout << "0" << endl;
         }
     }
         /*************************************************/
     else if (!strcmp(cmd, "cp"))
     {
-        //create new file
-        int fd_out = open(args[2], O_RDWR | O_CREAT, 0666);
-        //open old file
-        int fd_in = open(args[1], O_RDONLY);
-        if (fd_in == -1 || fd_out == -1)
-            perror("cp error");
+        if(args[3] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;//format ok
         else {
-            //copy file
-            struct stat st;
-            int byte_size;
-            if (stat(args[1], &st) == 0) {
-                //Size of file, in bytes.
-                byte_size = st.st_size;
+            //create new file
+            int fd_out = open(args[2], O_RDWR | O_CREAT, 0666);
+            //open old file
+            int fd_in = open(args[1], O_RDONLY);
+            if (fd_in == -1 || fd_out == -1)
+                perror("smash error: > cp error");//format ok
+            else {
+                //copy file
+                struct stat st;
+                int byte_size;
+                if (stat(args[1], &st) == 0) {
+                    //Size of file, in bytes.
+                    byte_size = st.st_size;
+                }
+                int suc = sendfile(fd_out, fd_in, 0, byte_size);
+                if (suc == -1)
+                    perror("smash error: > cp error");//format ok
+                else
+                    cout << args[1] << " has been copied to " << args[2] << endl;//format ok
             }
-            int suc = sendfile(fd_out, fd_in, 0, byte_size);//TODO fix this MF
-            if (suc == -1)
-                perror("cp error");
-            else
-                cout << args[1] << " has been copied to " << args[2] << endl;
         }
     }
         /*************************************************/
     else if (!strcmp(cmd, "bg")) {
-        if (*(jobs.begin()) == nullptr)
-            cout << "no processes running!" << endl;
+        if(args[2] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;//format ok
         else {
-            if (args[1] == nullptr) {//bging newest stopped proccess
-                found = false;
-                for (auto cur_job = jobs.end(); cur_job != jobs.begin(); cur_job++) {
-                    {
-                        if ((*cur_job)->stopped) {
-                            found = true;
-                            kill((*cur_job)->pid_num, SIGCONT);
-                            (*cur_job)->stopped = false;
+            if (*(jobs.begin()) == nullptr)
+                cout << "smash error: > no processes running!" << endl;
+            else {
+                if (args[1] == nullptr) {//bging newest stopped proccess
+                    found = false;
+                    for (auto cur_job = (--jobs.end()); cur_job != (--jobs.begin()); cur_job--) {
+                        {
+                            if ((*cur_job)->stopped) {
+                                found = true;
+                                cout << (*cur_job)->title_of_job<<endl;//format ok
+                                send_signal(SIGCONT, (*cur_job)->pid_num, "SIGCONT");
+                                (*cur_job)->stopped = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!found)
+                        cout << "smash error: > there are not any stopped processes" << endl;
+                } else {//bging specific process
+                    long int process_num = strtol(args[1], nullptr, 10);
+                    if (!process_num)
+                        cout << "smash error: > prccess number is invalid!" << endl;
+                    else {
+                        found = false;
+                        for (auto cur_job : jobs) {
+                            if ((*cur_job).proc_num == process_num) {
+                                found = true;
+                                if ((*cur_job).stopped) {
+                                    cout << (*cur_job).title_of_job << endl;//format ok
+                                    send_signal(SIGCONT, (*cur_job).pid_num, "SIGCONT");
+                                    (*cur_job).stopped = false;
+                                } else {
+                                    cout << "smash error: > this process hasnt been stopped!" << endl;
+                                }
+
+                            }
+                        }
+                        if(!found) {
+                            cout << "smash error: > couldnt find a process with this process number" << endl;
                         }
                     }
                 }
-                if(!found)
-                    cout << "there arnt any stopped processes"<<endl;
-            }
-            else {//bging specific process
-                long int process_num = strtol(args[1], nullptr, 10);
-                    if(!process_num)
-                        cout<<"prccess number is invalid!"<<endl;
-                    else {
-                        for (auto cur_job : jobs) {
-                            if ((*cur_job).proc_num == process_num) {
-                                if ((*cur_job).stopped) {
-                                    kill((*cur_job).pid_num, SIGCONT);
-                                    (*cur_job).stopped = false;
-                                } else {
-                                    cout << "this process hasnt been stopped!" << endl;
-                                }
-                            } else {
-                                cout << "couldnt find a process with this process number" << endl;
-                            }
-
-                        }
-                    }
             }
         }
     }
         /*************************************************/
     else if (!strcmp(cmd, "kill"))
     {
-        found = false;
-        long int proccess_num = strtol(args[2], nullptr, 10);
-        long int signal = strtol((args[1] + 1), nullptr, 10);
-        for (auto job : jobs)
-        {
-
+        if(args[3] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;
+        else {
+            found = false;
+            long int proccess_num = strtol(args[2], nullptr, 10);
+            long int signal = strtol((args[1] + 1), nullptr, 10);
             if (!proccess_num || !signal)
-                perror("arguments coudlnt be cast to int");
-            else if ((*job).proc_num == proccess_num)
-            {
-                found = true;
-                kill((*job).pid_num, (int)signal);
+                perror("smash error: > arguments could not be cast to int");
+            for (auto job : jobs) {
+                 if ((*job).proc_num == proccess_num) {
+                    found = true;
+                    send_signal((int) signal, (*job).pid_num, (string) (args[1] + 1));
+                    if ((int) signal == SIGSTOP)
+                        (*job).stopped = 1;
+                    if ((int) signal == SIGCONT)
+                        (*job).stopped = 0;
+                    break;
+                }
             }
+            if (!found)
+                cout << "smash error: > kill job – job does not exist"<<endl;//format ok
         }
-        if (!found)
-            printf("smash error: > \"%s\"� No such file or directory\n", cmdString);
     }
         /*************************************************/
     else if (!strcmp(cmd, "quit"))
     {
-        int status;
-        bool sigterm_succeed = false;
-        clock_t time_first_sig_sent;
-        if (args[1] == nullptr || ((*jobs.begin()) == nullptr))
-            exit(1);
-        else if(!strcmp(args[1],"kill"))
-        {
-            std::list<job*>::iterator job_it;
-            for (job_it = jobs.begin(); job_it != jobs.end(); job_it++)
-            {
-                kill((*job_it)->pid_num, SIGTERM);
-                time_first_sig_sent = clock();
-                while ((double)(clock() - time_first_sig_sent) < SIGTEM_TIMEOUT)
-                {
-                    int wait_ret_Val = waitpid((*job_it)->pid_num, &status, WNOHANG);
-                    if (wait_ret_Val == -1) {
-                        perror("waitpid failed from quit kill ");//TODO
-                    }
-                    else
-                    {
+        if(args[2] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;
+        else {
+            int status;
+            bool sigterm_succeed = false;
+            clock_t time_first_sig_sent;
+            if (args[1] == nullptr || ((*jobs.begin()) == nullptr))
+                exit(1);
+            else if (!strcmp(args[1], "kill")) {
+                for (auto job_it = jobs.begin(); job_it != jobs.end(); job_it++) {
+                    kill((*job_it)->pid_num,SIGTERM);
+                    cout<<"["<<(*job_it)->proc_num<<"]"<<(*job_it)->title_of_job<<"– Sending SIGTERM...";
+                    time_first_sig_sent = clock();
+                    while ( ((double)(clock() - time_first_sig_sent) / CLOCKS_PER_SEC) < SIGTEM_TIMEOUT) {
+                        int wait_ret_Val = waitpid((*job_it)->pid_num, &status, WNOHANG);
+                        if (wait_ret_Val == -1) {
+                            perror("smash error: > waitpid failed from quit kill ");//TODO
+                        } else {
 
-                        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGTERM)//TODO check what is going on with WIFSIGNALED here and all other places we used ths stuff
-                        {
-                            delete((*job_it));
-                            jobs.erase(job_it);
-                            cout << (*job_it)->title_of_job << "killed by signal " << SIGTERM << endl;//TODO is this line needed?
-                            sigterm_succeed = true;
+                            if (WIFSIGNALED(status) && WTERMSIG(status) == SIGTERM)//TODO check what is going on with WIFSIGNALED here and all other places we used ths stuff
+                            {
+                                delete ((*job_it));
+                                job_it = jobs.erase(job_it);
+                                sigterm_succeed = true;
+                                cout<<" Done."<<endl;
+                            }
                         }
                     }
+                    if (!sigterm_succeed) {
+                        cout<<" (5 sec passed) Sending SIGKILL…"<<endl;
+                        if(!kill((*job_it)->pid_num,SIGKILL)) {
+                            cout<<" Done."<<endl;
+                            delete ((*job_it));
+                            job_it = jobs.erase(job_it);
+                        }else
+                            perror("smash error: > kill job – cannot send signal");
+                    }
                 }
-                if (!sigterm_succeed) {
-                    kill((*job_it)->pid_num, SIGKILL);
-                    delete((*job_it));
-                    jobs.erase(job_it);
-                    cout << (*job_it)->title_of_job << "killed by signal " << SIGKILL << endl;//TODO is this line needed?
-                }
-            }
-
-        } else
-            cout<<"invalid argument for quit!"<<endl;
+                exit(1);
+            } else
+                cout << "smash error: > invalid argument for quit!" << endl;
+        }
     }
         /*************************************************/
     else if (!strcmp(cmd, "history"))
     {
-        list <string> ::iterator it;
-        for (it = history_commands.begin(); it != history_commands.end(); ++it) {
-            cout << '\t' << *it << '\n';
+        if(args[1] != nullptr)
+            cout << "smash error: > too many arguments"<<endl;
+        else {
+            list<string>::iterator it;
+            for (it = history_commands.begin(); it != history_commands.end(); ++it) {
+                cout <<*it << endl;
+            }
         }
     }
         /**************************************************/
 
     else // external command
     {
-        ExeExternal(args, cmdString, jobs);
+        ExeExternal(args, cmdString, jobs, run_in_bg);
         return 0;
     }
-    if (illegal_cmd)
-    {
-        printf("smash error: > \"%s\"� No such file or directory\n", cmdString);//TODO shouldn't this be some different error?
-        return 1;
-    }
+
     /*************************************************/
 // inserting history commands into list
     if (history_commands.size() == 50)
@@ -399,40 +458,25 @@ int ExeCmd(list <job*>& jobs, char* lineSize, char* cmdString, char* prv_dir, li
 // Parameters: external command arguments, external command string
 // Returns: void
 //**************************************************************************************
-void ExeExternal(char* args[MAX_ARG], char* cmdString, std::list <job*>& jobs)
+void ExeExternal(char* args[MAX_ARG], char* cmdString, std::list <job*>& jobs, bool bg)
 {
     int pID, execv_ret_val, i, last_arg;
-    bool run_in_bg;
-
-    for (i = 0; i < MAX_LINE_SIZE; i++)//looking for the last argument
-    {
-        if (!strcmp(args[i], "\0"))
-        {
-            last_arg = i - 1;
-            break;
-        }
-    }
-    if (!strcmp(args[last_arg],"&"))//run in bg
-    {
-        run_in_bg = true;
-        *args[last_arg] = '\0';
-    }
 
     switch (pID = fork())
     {
         case -1:
-            perror("fork fail at ExeExternal");
+            perror("smash error: > fork fail at ExeExternal");
         case 0:
             // Child Process
             setpgrp();
 
-            execv_ret_val = execvp(args[0], reinterpret_cast<char *const *>(args[1]));
+            execv_ret_val = execvp(args[0], reinterpret_cast<char* const*>(args[1]));
             if (execv_ret_val == -1)// execv failed
-                perror("command execution failed");
+                perror("smash error: > command execution failed");
 
         default://parent process
             job* new_job = new job(args[0], pID, clock());
-            if (run_in_bg)
+            if (bg)
             {
                 jobs.push_back(new_job);
             }
@@ -440,82 +484,35 @@ void ExeExternal(char* args[MAX_ARG], char* cmdString, std::list <job*>& jobs)
                 run_in_fg(new_job, jobs);
     }
 }
-//**************************************************************************************
-// function name: ExeComp
-// Description: executes complicated command
-// Parameters: command string
-// Returns: 0- if complicated -1- if not
-//**************************************************************************************
-int ExeComp(char* lineSize)
-{
-    char ExtCmd[MAX_LINE_SIZE + 2];
-    char* args[MAX_ARG];
-    if ((strstr(lineSize, "|")) || (strstr(lineSize, "<")) || (strstr(lineSize, ">")) || (strstr(lineSize, "*")) || (strstr(lineSize, "?")) || (strstr(lineSize, ">>")) || (strstr(lineSize, "|&")))
-    {
-        // Add your code here (execute a complicated command)
 
-        /*
-        your code
-        */
-    }
-    return -1;
-}
-//**************************************************************************************
-// function name: BgCmd
-// Description: if command is in background, insert the command to jobs
-// Parameters: command string, pointer to jobs
-// Returns: 0- BG command -1- if not
-//**************************************************************************************
 
-int BgCmd(char* lineSize, list<job*>& jobs)
-{
-
-    char* Command;
-    char* delimiters = " \t\n";
-    char* args[MAX_ARG];
-    if (lineSize[strlen(lineSize) - 2] == '&')
-    {
-        lineSize[strlen(lineSize) - 2] = '\0';
-        // Add your code here (execute a in the background)
-
-        /*
-        your code
-        */
-
-    }
-    return -1;
-}
 
 void update_jobs(list<job*>& jobs) {
     int status;
 
-    if (jobs.begin() != jobs.end()) {
+    if (*jobs.begin() != nullptr) {
         for (auto job_it = jobs.begin(); job_it != jobs.end(); job_it++) {
             if ((*job_it)->pid_num > 0) {
                 int wait_ret_Val = waitpid((*job_it)->pid_num, &status, WNOHANG);
                 if (wait_ret_Val == -1) {
-                    perror("update_jobs failed from waitpid");
+                    perror("smash error: > update_jobs failed from waitpid");
                 }
                 else
                 {
 
-                    if (WIFEXITED(status)) {
-                        cout << (*job_it)->title_of_job << "exited, status=" << WEXITSTATUS(status) << endl;
-                    }
-                    else if (WIFSIGNALED(status))
-                    {
+                    if (WIFEXITED(status) || (WIFSIGNALED(status) && WTERMSIG(status) != 32)) {
                         delete(*job_it);
-                        jobs.erase(job_it);
-                        cout << (*job_it)->title_of_job << "killed by signal " << WTERMSIG(status) << endl;
-
+                        job_it = jobs.erase(job_it);
                     }
                     else if (WIFSTOPPED(status))
                     {
-                        (*job_it)->stopped = 1;
+                        (*job_it)->stopped = true;
                         cout << (*job_it)->title_of_job << "stopped by signal " << WSTOPSIG(status) << endl;
+
                     }
                     else if (WIFCONTINUED(status))
                     {
+                        (*job_it)->stopped = false;
                         cout << (*job_it)->title_of_job << "continued" << endl;
                     }
                 }
@@ -527,30 +524,24 @@ void update_jobs(list<job*>& jobs) {
 }
 void run_in_fg(job* cur_job, list<job*>& jobs)
 {
+    //unstop if stopped
+    if((*cur_job).stopped) {
+        (*cur_job).stopped = false;
+        send_signal(SIGCONT,(*cur_job).pid_num,"SIGCONT");
+    }
 
 
     int status;
     waitpid((*cur_job).pid_num, &status, 0);//TODO which option? insted of zero..
 
-    if (WIFEXITED(status)) {
-        cout << (*cur_job).title_of_job << " exited, status=" << WEXITSTATUS(status) << endl;
-    }
-    else if (WIFSIGNALED(status))
-    {
-
-        cout << (*cur_job).title_of_job << "killed by signal " << WTERMSIG(status) << endl;
+    if (WIFEXITED(status) || (WIFSIGNALED(status) && WTERMSIG(status) != 32)) {
         delete(cur_job);
-
     }
     else if (WIFSTOPPED(status))
     {
         (*cur_job).stopped = true;
-        cout << (*cur_job).title_of_job << "stopped by signal " << WSTOPSIG(status) << endl;
         jobs.push_back(cur_job);
     }
-    else if (WIFCONTINUED(status))
-    {
-        cout << (*cur_job).title_of_job << "continued" << endl;
-    }
+
 
 }
