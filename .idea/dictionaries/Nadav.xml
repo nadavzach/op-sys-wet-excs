@@ -2,6 +2,7 @@
   <dictionary name="Nadav">
     <words>
       <w>execv</w>
+      <w>signame</w>
     </words>
   </dictionary>
 </component>
