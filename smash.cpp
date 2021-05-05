@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
         exit(-1);
     L_Fg_Cmd[0] = '\0';
 
-    while (1)
+    while (true)
     {
         printf("smash > ");
         update_jobs(jobs);
