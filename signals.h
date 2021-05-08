@@ -8,7 +8,9 @@
 #include <string.h>
 #include <signal.h>
 
-
-
 #endif
+void smash_sigtstp_handler(int sig);
+void smash_sigint_handler(int sig);
+
+
 

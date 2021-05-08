@@ -13,7 +13,6 @@ main file. This file contains the main function of smash
 #define MAX_LINE_SIZE 80
 //#define MAXARGS 20
 
-
 char* L_Fg_Cmd;
 std::list <job*> jobs; //This represents the list of jobs. Please change to a preferred type (e.g array of char*)
 int job::org_num = 0;
@@ -49,7 +48,18 @@ int main(int argc, char* argv[])
     if (L_Fg_Cmd == NULL)
         exit(-1);
     L_Fg_Cmd[0] = '\0';
+    /************************************/
+    //~~~~~~~~signal handling~~~~~~~~~~~
+    /************************************/
+    struct sigaction *smash_sigtstp_struct;
+    smash_sigtstp_struct->sa_handler = &smash_sigtstp_handler;
+    struct sigaction *smash_sigint_struct;
+    smash_sigint_struct->sa_handler = &smash_sigint_handler;
+    sigaction(SIGINT,smash_sigint_struct,nullptr);
+    sigaction(SIGTSTP,smash_sigtstp_struct,nullptr);
+    /************************************/
 
+    /************************************/
     while (true)
     {
         printf("smash > ");

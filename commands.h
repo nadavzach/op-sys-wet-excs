@@ -21,6 +21,10 @@ using namespace std;
 #define MAX_LINE_SIZE 80
 #define MAX_ARG 20
 #define MAX_HISTORY 50
+#define NO_PROCESS_IN_FG (-1)
+
+int fg_process_pid = NO_PROCESS_IN_FG;
+
 
 class job {
 public:

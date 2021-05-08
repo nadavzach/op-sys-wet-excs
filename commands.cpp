@@ -4,6 +4,7 @@
 #include <fstream>
 #include "commands.h"
 #include <sys/sendfile.h>
+#include "signals.h"
 //********************************************
 // function name: ExeCmd
 // Description: interperts and executes built-in commands
@@ -21,6 +22,10 @@
 //TODO check number of recived args is legal
 //TODO if a stopped process is getting fg, unstop it
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+struct sigaction *smash_sigtstp_struct;
+struct sigaction *smash_sigint_struct;
+
 job::job(string title_of_job, int pid_num, clock_t time_of_exc)
 {
     /*if(title_of_job.empty()||time_of_exc == -1)
@@ -475,6 +480,10 @@ void ExeExternal(char* args[MAX_ARG], char* cmdString, std::list <job*>& jobs, b
                 perror("smash error: > command execution failed");
 
         default://parent process
+            smash_sigtstp_struct->sa_handler = &smash_sigtstp_handler;
+            smash_sigint_struct->sa_handler = &smash_sigint_handler;
+            sigaction(SIGINT,smash_sigint_struct,nullptr);
+            sigaction(SIGTSTP,smash_sigtstp_struct,nullptr);
             job* new_job = new job(args[0], pID, clock());
             if (bg)
             {
@@ -530,10 +539,10 @@ void run_in_fg(job* cur_job, list<job*>& jobs)
         send_signal(SIGCONT,(*cur_job).pid_num,"SIGCONT");
     }
 
-
+    fg_process_pid = (*cur_job).pid_num;
     int status;
     waitpid((*cur_job).pid_num, &status, 0);//TODO which option? insted of zero..
-
+    fg_process_pid = NO_PROCESS_IN_FG;
     if (WIFEXITED(status) || (WIFSIGNALED(status) && WTERMSIG(status) != 32)) {
         delete(cur_job);
     }
@@ -545,3 +554,4 @@ void run_in_fg(job* cur_job, list<job*>& jobs)
 
 
 }
+
